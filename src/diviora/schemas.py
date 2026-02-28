@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal
 
-from diviora.runtime_deps import BaseModel, ConfigDict, Field
+from diviora.runtime_deps import BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictModel(BaseModel):
@@ -29,6 +29,16 @@ class TaskRequest(StrictModel):
     approval_mode: ApprovalMode
     context_notes: list[str] = Field(default_factory=list)
     commands: list[list[str]] = Field(default_factory=list)
+
+    @field_validator("task_type", mode="before")
+    @classmethod
+    def _coerce_task_type(cls, value: TaskType | str) -> TaskType:
+        return value if isinstance(value, TaskType) else TaskType(value)
+
+    @field_validator("approval_mode", mode="before")
+    @classmethod
+    def _coerce_approval_mode(cls, value: ApprovalMode | str) -> ApprovalMode:
+        return value if isinstance(value, ApprovalMode) else ApprovalMode(value)
 
 
 class PlanStep(StrictModel):

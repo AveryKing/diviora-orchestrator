@@ -66,7 +66,7 @@ tests/
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
+python -m pip install -e .[dev]
 ```
 
 ## Run
@@ -120,6 +120,10 @@ To inspect active dependency mode:
 ```bash
 python -c "from diviora.runtime_deps import runtime_dependency_state; print(runtime_dependency_state())"
 ```
+
+## CI
+
+GitHub Actions runs `pytest` on every `push` and `pull_request` using Python 3.11 via `.github/workflows/ci.yml`.
 
 ## Test
 
