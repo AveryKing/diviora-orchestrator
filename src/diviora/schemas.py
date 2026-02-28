@@ -70,11 +70,29 @@ class StepStatus(str, Enum):
     success = "success"
     failed = "failed"
     rejected = "rejected"
+    not_implemented = "not_implemented"
+
+
+class WorkerRuntime(str, Enum):
+    local = "local"
+    external = "external"
+
+
+class WorkerExecutionMode(str, Enum):
+    synchronous = "synchronous"
+    deferred = "deferred"
+    unsupported = "unsupported"
 
 
 class StepResult(StrictModel):
     step_id: str
     status: StepStatus
+    worker_id: str = "unknown"
+    worker_type: str = "unknown"
+    worker_runtime: WorkerRuntime = WorkerRuntime.local
+    execution_mode: WorkerExecutionMode = WorkerExecutionMode.synchronous
+    requires_approval: bool = False
+    step_inputs: dict[str, Any] = Field(default_factory=dict)
     stdout: str
     stderr: str
     artifact_paths: list[str] = Field(default_factory=list)
