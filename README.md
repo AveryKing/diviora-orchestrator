@@ -36,12 +36,14 @@ Each run creates:
 - `ledger.jsonl`
 - `verification.json`
 - `outcome.json`
+- `run_summary.json` (quick human summary)
 - `artifacts/`
 
 ## Repo structure
 
 ```
 README.md
+AGENTS.md
 pyproject.toml
 .env.example
 examples/
@@ -69,19 +71,38 @@ source .venv/bin/activate
 python -m pip install -e .[dev]
 ```
 
-## Run
+## CLI quickstart
 
-Research task:
+Check commands:
+
+```bash
+python -m diviora.cli --help
+```
+
+Run with a task file:
 
 ```bash
 python -m diviora.cli run --task-file examples/research_task.json
-```
-
-Code task:
-
-```bash
 python -m diviora.cli run --task-file examples/code_task.json
 ```
+
+Run a built-in demo path:
+
+```bash
+python -m diviora.cli demo --task-type research
+python -m diviora.cli demo --task-type code
+```
+
+Use `--json` if you only want `outcome.json`-style output from `run` or `demo`.
+
+## Run inspection
+
+After each run, inspect:
+
+1. `run_summary.json` for quick status, artifacts, approvals, and key file paths.
+2. `outcome.json` for final PASS/FAIL.
+3. `verification.json` for deterministic checks.
+4. `ledger.jsonl` and `approvals.jsonl` for audit trail.
 
 ## Approvals
 
@@ -130,6 +151,10 @@ GitHub Actions runs `pytest` on every `push` and `pull_request` using Python 3.1
 ```bash
 pytest
 ```
+
+## Agent guidance
+
+See `AGENTS.md` for persistent coding-agent boundaries and safe-change workflow for this repository.
 
 ## Intentionally out of scope
 

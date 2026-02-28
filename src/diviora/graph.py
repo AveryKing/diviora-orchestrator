@@ -29,6 +29,47 @@ def _write_json(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
+def _write_run_summary(run_dir: Path, task: TaskRequest, state: RunState, outcome: RunOutcome) -> None:
+    verification = state.get("verification")
+    step_results = state.get("step_results", [])
+    approvals = state.get("approvals", [])
+    step_statuses = [
+        {
+            "step_id": result.step_id,
+            "status": result.status.value,
+            "stderr": result.stderr,
+            "artifact_paths": result.artifact_paths,
+        }
+        for result in step_results
+    ]
+
+    summary = {
+        "run_id": outcome.run_id,
+        "task_id": outcome.task_id,
+        "task_type": task.task_type.value,
+        "status": outcome.status,
+        "reason": outcome.reason,
+        "run_dir": str(run_dir),
+        "key_files": {
+            "task_request": str(run_dir / "task_request.json"),
+            "plan": str(run_dir / "plan.json"),
+            "approvals": str(run_dir / "approvals.jsonl"),
+            "ledger": str(run_dir / "ledger.jsonl"),
+            "verification": str(run_dir / "verification.json"),
+            "outcome": str(run_dir / "outcome.json"),
+        },
+        "artifact_paths": outcome.artifact_paths,
+        "approval_counts": {
+            "total": len(approvals),
+            "approved": sum(1 for decision in approvals if decision.get("approved")),
+            "denied": sum(1 for decision in approvals if not decision.get("approved")),
+        },
+        "verification": verification.model_dump() if verification else None,
+        "step_statuses": step_statuses,
+    }
+    _write_json(run_dir / "run_summary.json", summary)
+
+
 def run_task(task: TaskRequest, config: Config | None = None, approval_fn: ApprovalFn | None = None) -> RunOutcome:
     cfg = config or load_config()
     run_id = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{_slug(task.task_id)}"
@@ -129,6 +170,7 @@ def run_task(task: TaskRequest, config: Config | None = None, approval_fn: Appro
             artifact_paths=verification.evidence_paths if verification else [],
         )
         _write_json(run_dir / "outcome.json", outcome.model_dump())
+        _write_run_summary(run_dir, task, state, outcome)
         ledger.append("run_completed", outcome.model_dump())
         return {**state, "outcome": outcome}
 
