@@ -6,11 +6,17 @@ PYDANTIC_SOURCE = "real"
 LANGGRAPH_SOURCE = "real"
 
 try:
-    from pydantic import BaseModel, ConfigDict, Field, ValidationError
+    from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 except ImportError:
     from diviora.compat.pydantic_shim import BaseModel, ConfigDict, Field, ValidationError
 
     PYDANTIC_SOURCE = "shim"
+
+    def field_validator(*_args: Any, **_kwargs: Any):
+        def _decorator(func: Any) -> Any:
+            return func
+
+        return _decorator
 
 try:
     from langgraph.graph import END, StateGraph
