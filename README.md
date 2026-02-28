@@ -104,6 +104,20 @@ After each run, inspect:
 3. `verification.json` for deterministic checks.
 4. `ledger.jsonl` and `approvals.jsonl` for audit trail.
 
+## Workers
+
+Workers execute bounded plan steps through a strict `StepResult` contract.
+Each result records worker identity/runtime, execution mode, approval requirement,
+step inputs, logs, artifacts, and metadata for auditability.
+
+Current workers:
+
+- `llm` (`LLMWorker`): local synchronous text generation for deterministic report content.
+- `shell` (`ShellWorker`): local synchronous allowlisted shell execution.
+- `external_terminal` (`ExternalTerminalWorker` scaffold): external lane placeholder that is intentionally not implemented for live execution in v0; it fails closed and writes a deterministic scaffold artifact.
+
+The `external_terminal` scaffold exists to keep future Warp/Oz-style terminal integration bounded and auditable without introducing network orchestration or autonomous behavior in v0.
+
 ## Approvals
 
 - `approval_mode=auto`: required approvals are auto-granted and logged.

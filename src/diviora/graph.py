@@ -19,6 +19,7 @@ from diviora.validation.validate_plan import validate_plan
 from diviora.validation.validate_step import validate_step
 from diviora.workers.llm_worker import LLMWorker
 from diviora.workers.shell_worker import ShellWorker
+from diviora.workers.external_terminal_worker import ExternalTerminalWorker
 
 
 def _slug(value: str) -> str:
@@ -37,6 +38,11 @@ def _write_run_summary(run_dir: Path, task: TaskRequest, state: RunState, outcom
         {
             "step_id": result.step_id,
             "status": result.status.value,
+            "worker_id": result.worker_id,
+            "worker_type": result.worker_type,
+            "worker_runtime": result.worker_runtime.value,
+            "execution_mode": result.execution_mode.value,
+            "requires_approval": result.requires_approval,
             "stderr": result.stderr,
             "artifact_paths": result.artifact_paths,
         }
@@ -80,6 +86,7 @@ def run_task(task: TaskRequest, config: Config | None = None, approval_fn: Appro
     artifact_mgr = ArtifactManager(run_dir)
     llm = LLMWorker()
     shell = ShellWorker(cfg.allowed_shell_roots)
+    external_terminal = ExternalTerminalWorker(run_dir / "artifacts")
 
     _write_json(run_dir / "task_request.json", task.model_dump())
     ledger.append("run_started", {"run_id": run_id, "task_id": task.task_id})
@@ -120,33 +127,37 @@ def run_task(task: TaskRequest, config: Config | None = None, approval_fn: Appro
         for step in state["plan"].steps:
             valid, reason = validate_step(step, task)
             if not valid:
-                res = StepResult(step_id=step.step_id, status=StepStatus.failed, stdout="", stderr=reason, metadata={}, artifact_paths=[])
+                res = StepResult(step_id=step.step_id, status=StepStatus.failed, stdout="", stderr=reason, metadata={}, artifact_paths=[], step_inputs=step.inputs, requires_approval=step.requires_approval)
                 results.append(res)
                 ledger.append("step_failed", {"step_id": step.step_id, "reason": reason})
                 return {**state, "step_results": results, "error": reason}
 
             ledger.append("step_started", {"step_id": step.step_id, "tool": step.tool})
             if step.tool == "llm":
-                res = llm.execute(step.step_id, step.inputs)
+                res = llm.execute(step.step_id, step.inputs, requires_approval=step.requires_approval)
                 artifact_name = step.inputs.get("artifact_name")
                 if artifact_name:
                     path = artifact_mgr.write_text(str(artifact_name), res.stdout)
                     res.artifact_paths.append(path)
             elif step.tool == "shell":
-                res = shell.execute(step.step_id, step.inputs)
+                res = shell.execute(step.step_id, step.inputs, requires_approval=step.requires_approval)
+            elif step.tool == "external_terminal":
+                res = external_terminal.execute(step.step_id, step.inputs, requires_approval=step.requires_approval)
             else:
                 res = StepResult(
                     step_id=step.step_id,
                     status=StepStatus.failed,
                     stdout="",
                     stderr=f"unsupported tool {step.tool}",
+                    step_inputs=step.inputs,
+                    requires_approval=step.requires_approval,
                     artifact_paths=[],
                     metadata={},
                 )
 
             results.append(res)
             event = "step_completed" if res.status == StepStatus.success else "step_failed"
-            ledger.append(event, {"step_id": step.step_id, "status": res.status.value, "stderr": res.stderr})
+            ledger.append(event, {"step_id": step.step_id, "status": res.status.value, "stderr": res.stderr, "worker_id": res.worker_id, "worker_type": res.worker_type, "worker_runtime": res.worker_runtime.value, "execution_mode": res.execution_mode.value})
             if res.status != StepStatus.success:
                 return {**state, "step_results": results, "error": f"step failed {step.step_id}"}
 
