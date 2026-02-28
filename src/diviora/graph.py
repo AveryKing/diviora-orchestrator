@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from langgraph.graph import END, StateGraph
+from diviora.runtime_deps import END, StateGraph
 
 from diviora.approvals import ApprovalFn, decide_approval
 from diviora.artifacts import ArtifactManager

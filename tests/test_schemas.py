@@ -1,6 +1,5 @@
 import pytest
-from pydantic import ValidationError
-
+from diviora.runtime_deps import ValidationError
 from diviora.schemas import PlanStep, TaskRequest
 
 
