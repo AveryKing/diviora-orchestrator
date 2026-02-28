@@ -1,0 +1,10 @@
+{
+  "task_id": "research-001",
+  "task_type": "research_report",
+  "goal": "Assess two approaches for deterministic orchestration kernels",
+  "constraints": ["No autonomous loops", "Deterministic outputs"],
+  "allowed_tools": ["llm"],
+  "approval_mode": "auto",
+  "context_notes": ["Need production-grade skeleton", "Prefer explicit audit trail"],
+  "commands": []
+}

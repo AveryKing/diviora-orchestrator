@@ -1,0 +1,10 @@
+{
+  "task_id": "code-001",
+  "task_type": "code_task",
+  "goal": "Run a deterministic smoke command",
+  "constraints": ["Only allowlisted commands"],
+  "allowed_tools": ["shell", "llm"],
+  "approval_mode": "auto",
+  "context_notes": ["Run simple command"],
+  "commands": [["echo", "smoke"]]
+}
