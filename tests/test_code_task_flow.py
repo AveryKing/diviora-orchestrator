@@ -18,6 +18,8 @@ def test_code_task_flow_pass(tmp_path: Path) -> None:
     )
     outcome = run_task(task, config=cfg)
     assert outcome.status == "PASS"
+    run_dirs = list((tmp_path / "runs").iterdir())
+    assert (run_dirs[0] / "run_summary.json").exists()
 
 
 def test_manual_approval_denial_fails_run(tmp_path: Path) -> None:

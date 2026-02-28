@@ -19,8 +19,10 @@ def test_research_report_flow(tmp_path: Path) -> None:
     outcome = run_task(task, config=cfg)
     assert outcome.status == "PASS"
     run_dirs = list((tmp_path / "runs").iterdir())
-    report = run_dirs[0] / "artifacts" / "report.md"
+    run_dir = run_dirs[0]
+    report = run_dir / "artifacts" / "report.md"
     assert report.exists()
+    assert (run_dir / "run_summary.json").exists()
     content = report.read_text(encoding="utf-8")
     assert "# Objective" in content
     assert "# Recommendation" in content
