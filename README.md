@@ -1,201 +1,124 @@
-# diviora-orchestrator
+# Diviora Orchestrator v0
 
-A deterministic, auditable workflow engine for orchestrating AI-assisted work.
+Diviora Orchestrator v0 is a minimal deterministic orchestration kernel.
 
-## Overview
+It accepts a task request, creates a bounded plan, validates policy, executes approved steps with controlled workers, verifies deterministic checks, and emits an auditable PASS/FAIL outcome with evidence.
 
-`diviora-orchestrator` is not an autonomous agent.
+## Core principles
 
-It is a structured workflow runner that:
-- accepts a goal and context
-- generates a plan using an LLM
-- executes steps using deterministic tools
-- records all actions and outputs
-- enforces strict guardrails and evaluation gates
+- Agents propose; code executes.
+- Fail closed by default.
+- Side effects require explicit approval.
+- Every meaningful action is logged.
+- Every run writes artifacts to a run folder.
+- Verification gates are mandatory.
+- No hidden autonomous loops.
 
-This system is designed to eliminate back-and-forth prompting and replace it with repeatable, inspectable execution.
+## Architecture overview
 
-## Core Principles
+Main orchestration flow (LangGraph):
 
-- Agents decide, code executes
-- All actions are traceable
-- Fail closed by default
-- No hidden side effects
-- Deterministic outputs > clever behavior
+1. `intake`
+2. `plan`
+3. `validate_plan`
+4. `approval_gate`
+5. `execute_steps`
+6. `verify`
+7. `finalize`
 
-## Architecture
+Each run creates:
 
-### 1) Interface Layer (Input Surface)
+`runs/<timestamp>_<task_slug>/`
 
-Handles incoming requests via:
-- CLI (primary)
-- Optional adapters (web, chat, etc.)
+- `task_request.json`
+- `plan.json`
+- `approvals.jsonl`
+- `ledger.jsonl`
+- `verification.json`
+- `outcome.json`
+- `artifacts/`
 
-Outputs:
-- structured plan
-- required approvals
-- generated artifacts (docs, reports, code)
+## Repo structure
 
-Invariant: Input is text. Output is structured artifacts.
+```
+README.md
+pyproject.toml
+.env.example
+examples/
+src/diviora/
+  cli.py
+  config.py
+  graph.py
+  state.py
+  schemas.py
+  ledger.py
+  artifacts.py
+  approvals.py
+  planning/
+  validation/
+  workers/
+  tasks/
+tests/
+```
 
-### 2) State + Ledger (Single Source of Truth)
+## Install
 
-Persistent run state including:
-- run_id
-- goal
-- context_refs
-- plan (step-by-step)
-- decisions (approved/rejected)
-- executions (tool calls)
-- artifacts
-- errors
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+```
 
-Implementation:
-- SQLite (initial)
-- File-based artifact storage: /artifacts/{run_id}/
+## Run
 
-Invariant: Every action is logged and reproducible.
+Research task:
 
-### 3) Planner (LLM - Bounded Scope)
+```bash
+python -m diviora.cli run --task-file examples/research_task.json
+```
 
-Generates a structured plan with step types:
-- DECISION_REQUIRED
-- DETERMINISTIC_EXECUTION
-- HUMAN_TASK
-- RESEARCH_READONLY
+Code task:
 
-The planner does not execute anything.
+```bash
+python -m diviora.cli run --task-file examples/code_task.json
+```
 
-Invariant: Planning only, no side effects.
+## Approvals
 
-### 4) Executor (Tool Runner)
+- `approval_mode=auto`: required approvals are auto-granted and logged.
+- `approval_mode=manual`: each approval-required step pauses for CLI confirmation.
+- Shell steps are side-effectful by default and require approval.
 
-Executes steps using predefined tools:
-- file operations
-- API calls
-- test execution
-- documentation generation
-- browser automation (Playwright)
-- repository interaction
+## Task types
 
-Each execution logs:
-- inputs
-- outputs
-- duration
-- success/failure
+### `research_report`
 
-Invariant: No execution without a planned step.
+- Tooling: `llm`
+- Output artifact: `artifacts/report.md`
+- Verification: artifact exists and required sections exist:
+  - Objective
+  - Options
+  - Risks
+  - Recommendation
+  - Next Steps
 
-### 5) Policy + Guardrails
+### `code_task`
 
-Enforces:
-- allowed tools per workflow
-- approval requirements
-- scope constraints (repo, environment)
-- secret handling rules
+- Tooling: `shell` + `llm`
+- Output artifact: `artifacts/execution_report.md`
+- Verification: report exists and command/test steps succeeded
 
-If ambiguity is detected, execution pauses.
+## Test
 
-Invariant: When in doubt, do not act.
+```bash
+pytest
+```
 
-### 6) Evaluation Gate (Quality Enforcement)
+## Intentionally out of scope
 
-Defines completion criteria such as:
-- tests passing
-- evaluation scores meeting thresholds
-- documentation completeness
-- UI verification success
-
-Workflow:
-- execute → evaluate → if fail → generate fix tasks → repeat
-
-Invariant: Outcomes must be measurable and verifiable.
-
-## Workflow Packs
-
-The system is designed around reusable workflow definitions.
-
-### RAG Reliability Pack
-- runs evaluation suite
-- identifies failures
-- proposes fixes (docs, chunking, retrieval)
-- outputs improvement report
-
-### UI Verification Pack
-- converts claims into Playwright checks
-- executes UI validation
-- outputs verification report
-
-### Research Pack
-Used for structured investigation tasks such as:
-- API integration strategies
-- EDI parsing libraries
-- UI framework options
-
-Outputs:
-- single markdown report per topic
-- includes options, risks, and recommendation
-
-## Tech Stack
-
-Recommended baseline:
-- Python
-- SQLite
-- Pydantic
-- CLI (Typer or Click)
-- Structured logging (JSON)
-
-Optional:
-- FastAPI (service mode)
-- Playwright (UI validation)
-- LangGraph (state orchestration)
-
-## System Flow
-
-User Goal
-  ↓
-Planner (LLM)
-  ↓
-Structured Plan
-  ↓
-Approval (if required)
-  ↓
-Executor (tools only)
-  ↓
-Artifacts + Logs
-  ↓
-Evaluation Gate
-  ↓
-PASS / FAIL
-
-## Design Summary
-
-diviora-orchestrator is a deterministic, auditable workflow runner that uses LLMs only for planning and drafting, while all execution is performed by explicit tools under strict guardrails and evaluated through repeatable quality gates.
-
-## Status
-
-Early-stage system focused on:
-- reliability over autonomy
-- auditability over speed
-- structured execution over prompt iteration
-
-## Future Work
-
-- additional workflow packs
-- richer UI adapters
-- distributed execution
-- automated retry loops (evaluation-driven)
-
-## Why This Exists
-
-Because prompt loops don’t scale.
-
-This system replaces:
-- manual iteration
-- hidden reasoning
-- inconsistent outputs
-
-with:
-- structured plans
-- deterministic execution
-- measurable results
+- UI and browser automation
+- Distributed orchestration
+- Agent swarms
+- Generalized long-term memory
+- Databases and scheduling systems
+- Autonomous retries/loops
