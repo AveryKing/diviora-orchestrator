@@ -108,6 +108,19 @@ python -m diviora.cli run --task-file examples/code_task.json
 - Output artifact: `artifacts/execution_report.md`
 - Verification: report exists and command/test steps succeeded
 
+## Dependency runtime mode
+
+The runtime now prefers real `pydantic` and real `langgraph` dependencies.
+
+- If both imports succeed, Diviora runs with real dependencies.
+- If either import is unavailable, Diviora falls back to internal compatibility shims under `diviora.compat` (these shims are no longer import-shadowing top-level packages).
+
+To inspect active dependency mode:
+
+```bash
+python -c "from diviora.runtime_deps import runtime_dependency_state; print(runtime_dependency_state())"
+```
+
 ## Test
 
 ```bash
